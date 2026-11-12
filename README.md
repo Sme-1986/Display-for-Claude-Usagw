@@ -21,11 +21,11 @@ Alle Werte holt das Gerät aus Home Assistant. Seiten ohne eingetragene Entity w
 
 ## 1. Die richtige BIN-Datei wählen
 
-Im Ordner [`firmware/`](firmware/) liegen zwei Dateien:
+Im Ordner [`firmware/`](firmware/) liegen die Dateien:
 
 | Gerät | Chip | Datei |
 |---|---|---|
-| SmallTV / **SmallTV-Ultra** (häufigste Variante) | ESP8266 | `claude-display_smalltv-ultra_esp8266.bin` |
+| SmallTV / **SmallTV-Ultra** (häufigste Variante) | ESP8266 | `smalltv-ultra_schritt1_zwischenfirmware.bin`, danach `smalltv-ultra_schritt2_claude-display.bin` |
 | **SmallTV-Pro** (mit Touch-Fläche oben) | ESP32 | `claude-display_smalltv-pro_esp32.bin` |
 
 Welches Modell du hast, steht in der Weboberfläche der Original-Firmware
@@ -37,13 +37,25 @@ gibt es bei GeekMagic zum Download, falls du zurück möchtest.
 
 ## 2. Hochladen
 
-1. Das Display wie gewohnt ins WLAN bringen und seine IP-Adresse im Browser öffnen.
-2. `http://<IP-des-Displays>/update` aufrufen (Firmware-Update der Original-Firmware).
-3. Die passende `.bin` auswählen und hochladen. Das Gerät startet neu.
-4. Normalerweise bleibt das WLAN gespeichert und das Display zeigt seine IP-Adresse an.
-   Falls nicht: mit dem WLAN **Claude-Display** verbinden, `192.168.4.1` öffnen, WLAN eintragen.
+### SmallTV-Ultra (zwei Schritte)
 
-Spätere Updates gehen genauso über `http://<IP>/update`.
+Die Original-Firmware lässt zu wenig Speicher frei, um die volle Firmware direkt anzunehmen
+(„Not Enough Space“). Deshalb kommt zuerst eine winzige Zwischen-Firmware aufs Gerät.
+
+1. `http://<IP-des-Displays>/update` öffnen und `smalltv-ultra_schritt1_zwischenfirmware.bin`
+   hochladen. Das Gerät startet neu; der Bildschirm zeigt in diesem Zustand nichts Sinnvolles.
+2. Etwa 30 Sekunden warten und dieselbe Adresse `http://<IP-des-Displays>/update` erneut öffnen.
+   Ist das Gerät dort nicht erreichbar: mit dem offenen WLAN **Claude-Display-Setup** verbinden
+   und `http://192.168.4.1/update` öffnen.
+3. `smalltv-ultra_schritt2_claude-display.bin` hochladen. Nach dem Neustart zeigt das Display
+   seine IP-Adresse. Erscheint stattdessen „WLAN einrichten“: mit dem WLAN **Claude-Display**
+   verbinden, `192.168.4.1` öffnen, WLAN eintragen.
+
+### SmallTV-Pro
+
+Die `.bin` über `http://<IP-des-Displays>/update` hochladen; danach wie oben ab Schritt 3.
+
+Spätere Updates gehen bei beiden Geräten direkt über `http://<IP>/update`.
 
 ## 3. Einrichten
 
