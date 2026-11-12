@@ -26,7 +26,7 @@
   typedef HTTPUpdateServer UpdateSrv;
 #endif
 
-#define FW_VERSION "1.0.0"
+#define FW_VERSION "1.1.0"
 
 TFT_eSPI tft;
 WebSrv server(80);
@@ -43,7 +43,7 @@ struct Field {
 
 enum {
   F_URL, F_TOKEN,
-  F_CL5H, F_CL7D,
+  F_CL5H, F_CL5HR, F_CL7D, F_CL7DR,
   F_PV1, F_PV1N, F_PV2, F_PV2N, F_PV3, F_PV3N, F_PVMAX,
   F_SOC, F_BATPWR, F_BATINV,
   F_ETOTAL, F_ETODAY,
@@ -54,8 +54,10 @@ enum {
 Field cfg[F_COUNT] = {
   {"ha_url",   "Home Assistant URL", "z.B. http://192.168.1.10:8123", ""},
   {"ha_token", "Long-Lived Access Token", "leer lassen = unveraendert", ""},
-  {"cl_5h",    "Claude Session (5h) Entity", "", "sensor.claude_session_usage"},
-  {"cl_7d",    "Claude Woche Entity", "", "sensor.claude_weekly_usage"},
+  {"cl_5h",    "Claude Session (5h) Entity", "Verbrauch in %", "sensor.claude_session_usage"},
+  {"cl_5h_r",  "Session Reset-Zeit Entity", "optional, z.B. bei HACS-Integration", ""},
+  {"cl_7d",    "Claude Woche Entity", "Verbrauch in %", "sensor.claude_weekly_usage"},
+  {"cl_7d_r",  "Woche Reset-Zeit Entity", "optional", ""},
   {"pv1",      "Solar Array 1 Entity (Leistung)", "z.B. sensor.pv1_power", ""},
   {"pv1n",     "Array 1 Name", "", "Array 1"},
   {"pv2",      "Solar Array 2 Entity", "", ""},
@@ -155,8 +157,16 @@ void fetchData() {
     if (i) body += '|';
     const String &e = cfg[readingField[i]].value;
     if (!validEntity(e)) { body += F("-;-"); continue; }
-    const char *attr = (i >= R_CL5H) ? "resets_at" : "unit_of_measurement";
-    body += "{{states('" + e + "')}};{{state_attr('" + e + "','" + attr + "')}}";
+    body += "{{states('" + e + "')}};";
+    if (i < R_CL5H) {
+      body += "{{state_attr('" + e + "','unit_of_measurement')}}";
+      continue;
+    }
+    // Reset-Zeit als Unix-Zeit: eigener Zeitstempel-Sensor oder Attribut resets_at
+    // (Zahl oder ISO-Datum)
+    const String &re = cfg[i == R_CL5H ? F_CL5HR : F_CL7DR].value;
+    if (validEntity(re)) body += "{{as_timestamp(states('" + re + "'),0)|int}}";
+    else body += "{%set r=state_attr('" + e + "','resets_at')%}{{r if r is number else as_timestamp(r,0)|int}}";
   }
   body += F("\"}");
 
@@ -313,7 +323,7 @@ void drawClaude(int page, const char *title, const Reading &r, long windowSecs) 
 
   float pct = constrain(r.v, 0.0f, 100.0f);
   time_t now = nowTs();
-  long resets = isNumber(r.extra) ? (long)r.extra.toInt() : 0;
+  long resets = isNumber(r.extra) ? (long)r.extra.toFloat() : 0;
   long left = (now && resets) ? resets - (long)now : 0;
   bool expired = now && resets && left <= 0;
   if (expired) pct = 0;  // Fenster ist abgelaufen, Limit wieder frei

@@ -58,19 +58,42 @@ Die IP-Adresse des Displays im Browser öffnen und eintragen:
 
 Oben auf der Seite steht, ob die Verbindung klappt und welche Werte ankommen.
 
-## 4. Claude-Limits an Home Assistant melden
+## 4. Claude-Limits nach Home Assistant bringen
 
-Die Limits kennt nur dein Claude-Login, deshalb meldet sie ein kleines Skript auf deinem
-Rechner an Home Assistant: [`tools/claude_usage_to_ha.py`](tools/claude_usage_to_ha.py)
-(nur Python 3, keine weiteren Pakete).
+### Weg 1 – HACS-Integration „Claude Usage“ (am einfachsten)
 
-Zugangsdaten für Home Assistant in `~/.config/claude-display.json` ablegen:
+Die Community-Integration [trickv/hass-claude-usage](https://github.com/trickv/hass-claude-usage)
+läuft komplett in Home Assistant, ein Skript auf dem Rechner ist dann nicht nötig.
+
+1. [HACS](https://hacs.xyz) installieren, falls noch nicht vorhanden.
+2. In HACS nach **Claude Usage** suchen, installieren, Home Assistant neu starten.
+3. *Einstellungen → Geräte & Dienste → Integration hinzufügen → Claude Usage*,
+   dem angezeigten Link folgen, bei Claude anmelden und den Code einfügen.
+4. In der Weboberfläche des Displays die vier Entities eintragen (die genauen IDs stehen
+   in Home Assistant beim Gerät „Claude Usage“):
+
+| Feld im Display | Sensor der Integration |
+|---|---|
+| Claude Session (5h) Entity | „Session Usage“ |
+| Session Reset-Zeit Entity | „Session Reset Time“ |
+| Claude Woche Entity | „Week Usage“ |
+| Woche Reset-Zeit Entity | „Weekly Reset Time“ |
+
+Die Integration ist inoffiziell und nutzt eine nicht dokumentierte Schnittstelle von Anthropic.
+Das Abfrageintervall auf den voreingestellten 300 Sekunden lassen: Laut Autor sperrt Anthropic
+die Abfrage bei zu häufigen Zugriffen für rund 24 Stunden.
+
+### Weg 2 – Skript auf dem eigenen Rechner
+
+[`tools/claude_usage_to_ha.py`](tools/claude_usage_to_ha.py) (nur Python 3, keine weiteren
+Pakete) meldet die Limits an Home Assistant. Zugangsdaten in `~/.config/claude-display.json`:
 
 ```json
 {"ha_url": "http://192.168.1.10:8123", "ha_token": "DEIN_TOKEN"}
 ```
 
-**Variante A – Statuszeile von Claude Code (empfohlen).** In `~/.claude/settings.json`:
+Als Statuszeile von Claude Code in `~/.claude/settings.json` (nutzt nur dokumentierte Daten,
+aktualisiert aber nur, während Claude Code läuft):
 
 ```json
 {
@@ -81,16 +104,11 @@ Zugangsdaten für Home Assistant in `~/.config/claude-display.json` ablegen:
 }
 ```
 
-Claude Code übergibt die Limits dann laufend an das Skript. Aktualisiert wird nur,
-während Claude Code läuft.
+Oder dauerhaft im Hintergrund mit `python3 tools/claude_usage_to_ha.py --poll`
+(gleiche nicht dokumentierte Schnittstelle wie Weg 1).
 
-**Variante B – Abfrage im Hintergrund.** `python3 tools/claude_usage_to_ha.py --poll`
-fragt alle 3 Minuten ab, auch wenn du Claude nur im Browser oder in der App nutzt.
-Das nutzt den Login von Claude Code und eine nicht dokumentierte Schnittstelle, die sich
-jederzeit ändern kann.
-
-Beide Varianten legen `sensor.claude_session_usage` und `sensor.claude_weekly_usage` an –
-genau die Namen, die im Display voreingestellt sind.
+Das Skript legt `sensor.claude_session_usage` und `sensor.claude_weekly_usage` an – die
+Voreinstellung im Display. Die Reset-Zeit-Felder bleiben dabei leer.
 
 ## Selbst bauen
 
