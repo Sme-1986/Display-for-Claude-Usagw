@@ -1,0 +1,47 @@
+# Börsen-Bot – Konfiguration
+# Kopiere diese Datei nach config.toml und passe sie an.
+# Alles mit "" bleibt aus, bis du etwas einträgst.
+
+[allgemein]
+# Wie oft alle Quellen geprüft werden (Minuten)
+intervall_minuten = 30
+# Ab welchem Score (0–100) eine Aktie als "starker Trend" gilt
+schwelle_stark = 65
+# Port der Weboberfläche (http://<raspi-ip>:8080)
+port = 8080
+# Adresse, unter der du die Oberfläche erreichst – wird für Links in Push-Nachrichten
+# benutzt, z. B. "http://192.168.1.50:8080". Leer = keine Links.
+web_adresse = ""
+# Datenbank-Datei (relativ zum Projektordner)
+datenbank = "daten/boersenbot.sqlite"
+
+[quellen]
+# Nachrichten pro Aktie höchstens alle X Minuten neu laden (schont die Quellen)
+news_cache_minuten = 120
+# SEC EDGAR (US-Pflichtmitteilungen, 8-K) verlangt einen Kontakt im User-Agent,
+# z. B. "MeinBoersenbot deine@mail.de". Leer = SEC wird übersprungen.
+sec_user_agent = ""
+# Finnhub – kostenloser API-Key auf finnhub.io (optional, mehr US-News)
+finnhub_key = ""
+# Reddit-Erwähnungen über ApeWisdom (kostenlos, ohne Key, nur US-Aktien)
+apewisdom = true
+
+[ki]
+# Claude API-Key von console.anthropic.com (optional).
+# Ohne Key gibt es Score + News, aber keine KI-Begründung.
+# Alternativ als Umgebungsvariable ANTHROPIC_API_KEY setzen.
+anthropic_api_key = ""
+modell = "claude-opus-5-5"
+# Wie gründlich die KI nachdenkt: low | medium | high
+aufwand = "medium"
+# Maximale Websuchen pro Analyse
+max_websuchen = 5
+# Automatisch analysieren, sobald eine Aktie die Schwelle überschreitet
+# (höchstens 1x pro Aktie und Tag). false = nur per Knopf in der Oberfläche.
+auto_analyse = true
+
+[benachrichtigung]
+# Push aufs Handy über ntfy.sh (kostenlos): App installieren, Thema abonnieren,
+# hier denselben Themennamen eintragen. Leer = aus.
+ntfy_thema = ""
+ntfy_server = "https://ntfy.sh"

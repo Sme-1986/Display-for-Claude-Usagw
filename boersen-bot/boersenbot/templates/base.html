@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block titel %}Börsen-Bot{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+{% block kopf %}{% endblock %}
+</head>
+<body>
+<header class="kopf">
+  <a class="logo" href="{{ url_for('uebersicht') }}">Börsen-Bot</a>
+  <nav>
+    <a href="{{ url_for('uebersicht') }}">Trends</a>
+    <a href="{{ url_for('watchlist') }}">Watchlist</a>
+    <a href="{{ url_for('status') }}">Quellen</a>
+  </nav>
+  <div class="laufstatus" id="laufstatus">
+    {% if status.laeuft %}
+      <span class="punkt aktiv"></span>{{ status.fortschritt or 'Aktualisiere …' }}
+    {% else %}
+      <span class="punkt"></span>Stand {{ status.letzter_lauf|vor }}
+      <form method="post" action="{{ url_for('aktualisieren') }}"><button class="knopf klein">Jetzt prüfen</button></form>
+    {% endif %}
+  </div>
+</header>
+<main>
+{% if status.fehler %}<p class="hinweis fehler">Letzter Lauf fehlgeschlagen: {{ status.fehler }}</p>{% endif %}
+{% block inhalt %}{% endblock %}
+</main>
+<footer>Keine Anlageberatung. Kostenlose Kursdaten sind oft 15 Min. verzögert.</footer>
+<script>
+// Während eines Laufs den Status live nachladen, danach Seite neu laden
+(function () {
+  var lief = {{ 'true' if status.laeuft else 'false' }};
+  function pruefen() {
+    fetch("{{ url_for('api_status') }}").then(r => r.json()).then(s => {
+      var el = document.getElementById("laufstatus");
+      if (s.laeuft) {
+        lief = true;
+        el.innerHTML = '<span class="punkt aktiv"></span>' + (s.fortschritt || "Aktualisiere …");
+      } else if (lief) {
+        location.reload();
+      }
+    }).catch(() => {});
+  }
+  setInterval(pruefen, lief ? 3000 : 60000);
+})();
+</script>
+</body>
+</html>

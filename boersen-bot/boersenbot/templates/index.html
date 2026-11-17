@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block inhalt %}
+<div class="tabs">
+  {% for key, label in [('stark', 'Starke Trends'), ('auf', 'Aufwärts'), ('ab', 'Abwärts'), ('alle', 'Alle')] %}
+    <a href="?filter={{ key }}" class="{{ 'aktiv' if filt == key }}">{{ label }} <span class="anz">{{ anzahl[key] }}</span></a>
+  {% endfor %}
+</div>
+
+{% if not liste %}
+  <div class="leer">
+    {% if anzahl.alle == 0 %}
+      <p><strong>Noch keine Daten.</strong> Der erste Durchlauf sammelt gerade alle Quellen – das dauert auf dem Raspberry Pi ein paar Minuten.</p>
+    {% elif filt == 'stark' %}
+      <p><strong>Gerade kein starker Trend</strong> (Score ≥ {{ cfg.schwelle_stark }}). Das ist der Normalfall – der Bot meldet sich, wenn etwas passiert.</p>
+      <p><a href="?filter=alle">Alle {{ anzahl.alle }} Aktien ansehen</a></p>
+    {% else %}
+      <p>Keine Aktien in dieser Ansicht.</p>
+    {% endif %}
+  </div>
+{% else %}
+<table class="liste">
+  <thead>
+    <tr>
+      <th>Aktie</th>
+      <th class="r">Score</th>
+      <th class="r">Kurs</th>
+      <th class="r">Heute</th>
+      <th class="r breit">20 Tage</th>
+      <th class="breit">6 Monate</th>
+      <th class="breit">Auffällig</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for s in liste %}
+    <tr onclick="location.href='{{ url_for('aktie', symbol=s.symbol) }}'">
+      <td>
+        <a href="{{ url_for('aktie', symbol=s.symbol) }}" class="name">{{ s.name }}</a>
+        <span class="sym">{{ s.symbol }}{% if s.symbol in mit_analyse %} · <span class="ki">KI-Analyse</span>{% endif %}</span>
+      </td>
+      <td class="r">
+        <span class="score {{ stufe(s.score) }}">
+          <span class="pfeil">{{ '▲' if s.richtung > 0 else '▼' if s.richtung < 0 else '■' }}</span>{{ s.score }}
+        </span>
+      </td>
+      <td class="r num">{{ s.kurs|zahl }}</td>
+      <td class="r num {{ 'pos' if s.chg_1d > 0 else 'neg' if s.chg_1d < 0 }}">{{ s.chg_1d|pct }}</td>
+      <td class="r num breit {{ 'pos' if s.chg_20d > 0 else 'neg' if s.chg_20d < 0 }}">{{ s.chg_20d|pct }}</td>
+      <td class="breit spark">{{ linie(charts[s.symbol]|map(attribute=1)|list) }}</td>
+      <td class="breit">{% for f in s.details.flags %}<span class="flag">{{ f }}</span>{% endfor %}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+<details class="erklaerung">
+  <summary>Wie entsteht der Score?</summary>
+  <p>Der Score (0–100) misst, wie <em>stark</em> ein Trend ist. Die Richtung zeigt der Pfeil. Punkte gibt es für:
+  Momentum (20), Tagesbewegung (10), Handelsvolumen (15), Ausbruch auf neue Hochs/Tiefs (10), Ordnung der gleitenden
+  Durchschnitte (10), ADX-Trendstärke (10), Stärke gegenüber dem Index (10), Nachrichtenlage (10) und Reddit-Aufmerksamkeit (5).
+  Ab {{ cfg.schwelle_stark }} Punkten gilt ein Trend als stark{% if cfg.ki_aktiv %} und die KI recherchiert automatisch die Gründe{% endif %}.</p>
+</details>
+{% endblock %}

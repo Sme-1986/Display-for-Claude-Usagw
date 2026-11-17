@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block titel %}Quellen – Börsen-Bot{% endblock %}
+{% block inhalt %}
+<h1>Quellen &amp; Status</h1>
+<div class="spalten">
+<section class="karte">
+  <h2>Datenquellen</h2>
+  <table class="liste kompakt">
+    <thead><tr><th>Quelle</th><th>Liefert</th><th class="r">Treffer letzter Lauf</th></tr></thead>
+    <tbody>
+    {% set q = status.quellen %}
+    {% for name, liefert, aktiv in [
+      ('Yahoo Finance (Kurse)', 'Tageskurse, Volumen, 1 Jahr', true),
+      ('Yahoo Finance', 'Nachrichten je Aktie, Zahlen-Termine', true),
+      ('Yahoo RSS', 'Schlagzeilen je Aktie', true),
+      ('Google News', 'Schlagzeilen (DE für .DE, sonst EN)', true),
+      ('SEC EDGAR', 'US-Pflichtmitteilungen (8-K)', cfg.sec_user_agent != ''),
+      ('Finnhub', 'US-Firmennachrichten', cfg.finnhub_key != ''),
+      ('Reddit (ApeWisdom)', 'Erwähnungen in Reddit-Börsenforen', cfg.apewisdom),
+    ] %}
+      <tr>
+        <td>{{ name }}</td>
+        <td class="sym">{{ liefert }}</td>
+        <td class="r num">{% if not aktiv %}<span class="sym">aus (config.toml)</span>{% elif name in q %}{{ q[name] }}{% else %}–{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="sym">Nachrichten werden pro Aktie höchstens alle {{ cfg.news_cache_minuten }} Min. neu geladen – „–“ heißt meist nur „noch im Cache“.</p>
+</section>
+
+<section class="karte">
+  <h2>Einstellungen</h2>
+  <dl class="einst">
+    <dt>Intervall</dt><dd>alle {{ cfg.intervall_minuten }} Min.{% if status.naechster_lauf %}, nächster Lauf {{ status.naechster_lauf|vor }}{% endif %}</dd>
+    <dt>Schwelle „stark“</dt><dd>{{ cfg.schwelle_stark }} Punkte</dd>
+    <dt>KI-Recherche</dt><dd>{% if cfg.ki_aktiv %}an ({{ cfg.modell }}, {{ 'automatisch' if cfg.auto_analyse else 'nur per Knopf' }}){% else %}aus – kein API-Key{% endif %}</dd>
+    <dt>Push (ntfy)</dt><dd>{{ ('Thema „' ~ cfg.ntfy_thema ~ '“') if cfg.ntfy_thema else 'aus' }}</dd>
+  </dl>
+  <p class="sym">Ändern in <code>config.toml</code>, danach <code>sudo systemctl restart boersenbot</code>.</p>
+</section>
+</div>
+
+<section class="karte">
+  <h2>Letzte Durchläufe</h2>
+  <table class="liste kompakt">
+    <thead><tr><th>Start</th><th class="r">Dauer</th><th>Ergebnis</th></tr></thead>
+    <tbody>
+    {% for l in laeufe %}
+      <tr><td>{{ l.ts|zeit }}</td><td class="r num">{{ l.dauer|zahl(0) }} s</td><td class="{{ 'neg' if l.status == 'fehler' }}">{{ l.meldung }}</td></tr>
+    {% else %}
+      <tr><td colspan="3">Noch kein Durchlauf abgeschlossen.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

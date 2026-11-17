@@ -1,0 +1,5 @@
+venv/
+daten/
+config.toml
+*.sqlite*
+.pytest_cache/

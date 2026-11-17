@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block titel %}{{ s.name }} – Börsen-Bot{% endblock %}
+{% block inhalt %}
+{% set k = s.details.kennzahlen %}
+<a class="zurueck" href="{{ url_for('uebersicht') }}">← Übersicht</a>
+
+<section class="titelzeile">
+  <div>
+    <h1>{{ s.name }}</h1>
+    <p class="sym">{{ s.symbol }} · Stand {{ s.ts|zeit }}</p>
+  </div>
+  <div class="gesamt">
+    <span class="score gross {{ stufe(s.score) }}">
+      <span class="pfeil">{{ '▲' if s.richtung > 0 else '▼' if s.richtung < 0 else '■' }}</span>{{ s.score }}
+    </span>
+    <span class="unter">{{ 'Aufwärtstrend' if s.richtung > 0 else 'Abwärtstrend' if s.richtung < 0 else 'keine klare Richtung' }}</span>
+  </div>
+</section>
+
+<section class="kacheln">
+  <div><span class="lbl">Kurs</span><span class="wert">{{ s.kurs|zahl }}</span></div>
+  <div><span class="lbl">Heute</span><span class="wert {{ 'pos' if s.chg_1d > 0 else 'neg' }}">{{ s.chg_1d|pct(2) }}</span></div>
+  <div><span class="lbl">5 Tage</span><span class="wert {{ 'pos' if k.rendite_5d > 0 else 'neg' }}">{{ k.rendite_5d|pct }}</span></div>
+  <div><span class="lbl">20 Tage</span><span class="wert {{ 'pos' if s.chg_20d > 0 else 'neg' }}">{{ s.chg_20d|pct }}</span></div>
+  <div><span class="lbl">Volumen</span><span class="wert">{{ k.volumen_faktor|zahl(1) }}×</span></div>
+  <div><span class="lbl">RSI 14</span><span class="wert">{{ k.rsi|zahl(0) }}</span></div>
+</section>
+
+{% if s.details.flags %}<p>{% for f in s.details.flags %}<span class="flag">{{ f }}</span>{% endfor %}</p>{% endif %}
+
+<section class="karte">
+  <h2>Kursverlauf (6 Monate)</h2>
+  <div class="chart">{{ linie(chart|map(attribute=1)|list, 600, 160) }}</div>
+  {% if chart %}<div class="achse"><span>{{ chart[0][0] }}</span><span>{{ chart[-1][0] }}</span></div>{% endif %}
+</section>
+
+<div class="spalten">
+<section class="karte">
+  <h2>Warum dieser Score?</h2>
+  <ul class="komponenten">
+  {% for c in s.details.komponenten %}
+    <li>
+      <div class="kz"><strong>{{ c.name }}</strong><span class="num">{{ c.punkte|zahl(1) }} / {{ c.max }}</span></div>
+      <div class="balken"><span style="width: {{ (100 * c.punkte / c.max)|round }}%"></span></div>
+      <div class="txt">{{ c.text }}</div>
+    </li>
+  {% endfor %}
+  </ul>
+  {% if verlauf|length > 1 %}
+    <h3>Score-Verlauf (30 Tage)</h3>
+    <div class="chart klein">{{ linie(verlauf|map(attribute='score')|list, 600, 60) }}</div>
+  {% endif %}
+</section>
+
+<section class="karte">
+  <h2>KI-Recherche: Gründe</h2>
+  {% if analyse_laeuft %}
+    <p class="hinweis"><span class="punkt aktiv"></span>Die KI recherchiert gerade (Websuche) – das dauert meist 30–90 Sekunden. <a href="">Neu laden</a></p>
+  {% elif analyse %}
+    <p class="sym">Erstellt {{ analyse.ts|vor }} bei Score {{ analyse.score }}</p>
+    <div class="analyse">{{ analyse.text|linkify }}</div>
+    {% if analyse.quellen %}
+      <h3>Quellen</h3>
+      <ul class="quellen">{% for q in analyse.quellen %}<li><a href="{{ q.url }}" target="_blank" rel="noopener">{{ q.titel }}</a></li>{% endfor %}</ul>
+    {% endif %}
+  {% elif not cfg.ki_aktiv %}
+    <p class="hinweis">Für die automatische Begründung einen Claude-API-Key in <code>config.toml</code> eintragen. Bis dahin helfen die Schlagzeilen unten.</p>
+  {% else %}
+    <p>Noch keine Analyse. Sie startet automatisch ab Score {{ cfg.schwelle_stark }}.</p>
+  {% endif %}
+  {% if cfg.ki_aktiv and not analyse_laeuft %}
+    <form method="post" action="{{ url_for('analyse_starten', symbol=s.symbol) }}">
+      <button class="knopf">{{ 'Neu recherchieren' if analyse else 'Jetzt recherchieren' }}</button>
+    </form>
+  {% endif %}
+</section>
+</div>
+
+<section class="karte">
+  <h2>Schlagzeilen (7 Tage, {{ news|length }})</h2>
+  {% if news %}
+  <ul class="news">
+    {% for n in news %}
+      <li>
+        <span class="stimmung {{ 'pos' if n.stimmung > 0 else 'neg' if n.stimmung < 0 else '' }}" title="Stimmung {{ n.stimmung }}"></span>
+        <span class="zeit">{{ n.zeit|zeit }}</span>
+        {% if n.url %}<a href="{{ n.url }}" target="_blank" rel="noopener">{{ n.titel }}</a>{% else %}{{ n.titel }}{% endif %}
+        <span class="quelle">{{ n.quelle }}</span>
+      </li>
+    {% endfor %}
+  </ul>
+  {% else %}<p>Keine Schlagzeilen gefunden.</p>{% endif %}
+</section>
+{% if analyse_laeuft %}<script>setTimeout(() => location.reload(), 10000);</script>{% endif %}
+{% endblock %}
