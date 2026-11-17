@@ -27,6 +27,7 @@ Antworte auf Deutsch, kurz und gegliedert, ohne Einleitung:
 Kurzfazit: <ein Satz>
 Gründe:
 - <Grund> [Quelle: <Medium>, <Datum>]
+Auslöser: <genau eins von: Gesamtmarkt/Sektor | Firma, eher einmalig | Firma, grundlegend | unklar>
 Einordnung: <1–3 Sätze: einmaliges Ereignis oder anhaltender Trend? Was als Nächstes wichtig wird (Termine)?>
 Sicherheit: <hoch | mittel | niedrig> – <kurze Begründung>"""
 
@@ -43,6 +44,13 @@ def _prompt(symbol: str, name: str, score: dict, news: list[dict]) -> str:
         f"Volumen: {k['volumen_faktor']:.1f}× normal, ADX {k['adx']:.0f}, RSI {k['rsi']:.0f}",
         f"Auffälligkeiten: {', '.join(score['details']['flags']) or 'keine'}",
     ]
+    rb = score["details"].get("rebound")
+    if rb:
+        zeilen.append(
+            f"Statistik: Nach ähnlichen Einbrüchen erholten sich Aktien in {rb['chance']:.0%} der Fälle "
+            f"binnen {rb['horizont']} Handelstagen um mind. die Hälfte (Durchschnitt aller Einbrüche: "
+            f"{rb['basis']:.0%}). Ordne kurz ein, ob der Auslöser eher für oder gegen eine Erholung spricht."
+        )
     if k.get("zahlen_termin"):
         zeilen.append(f"Quartalszahlen-Termin laut Yahoo: {k['zahlen_termin']}")
     zeilen.append("\nGesammelte Schlagzeilen (neueste zuerst):")

@@ -163,6 +163,23 @@ svg.linie.neg .flaeche { fill: var(--neg); }
 .einst dt { color: var(--leise); }
 .einst dd { margin: 0; }
 
+/* Rebound */
+.rb-kopf { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.rb-kopf h2 { margin-bottom: 4px; }
+.rb-zahl { font-size: 2.2rem; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; line-height: 1.1; }
+.rb-zahl.hoch { color: var(--pos); }
+.rb-zahl.tief { color: var(--neg); }
+.rb-skala { position: relative; height: 8px; border-radius: 4px; margin: 14px 0 6px;
+  background: linear-gradient(90deg, var(--neg), var(--flag-bg) 50%, var(--pos)); }
+.rb-skala span { position: absolute; top: -4px; transform: translateX(-50%); }
+.rb-basis { width: 2px; height: 16px; background: var(--leise); }
+.rb-wert { width: 14px; height: 14px; top: -3px !important; border-radius: 50%; background: var(--karte); border: 3px solid var(--text); }
+.spalten.schmal { gap: 8px 16px; }
+.faktoren { list-style: none; padding: 0; margin: 0; font-size: .9rem; }
+.faktoren li { padding: 2px 0; }
+.faktoren li.pos::before { content: "+ "; }
+.faktoren li.neg::before { content: "− "; }
+
 .hinweis { background: var(--flag-bg); padding: 10px 12px; border-radius: 8px; }
 .hinweis.fehler { color: var(--neg); }
 .leer { background: var(--karte); border-radius: 12px; padding: 24px; text-align: center; box-shadow: var(--schatten); }

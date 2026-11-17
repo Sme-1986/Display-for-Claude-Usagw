@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block inhalt %}
 <div class="tabs">
-  {% for key, label in [('stark', 'Starke Trends'), ('auf', 'Aufwärts'), ('ab', 'Abwärts'), ('alle', 'Alle')] %}
+  {% for key, label in [('stark', 'Starke Trends'), ('auf', 'Aufwärts'), ('ab', 'Abwärts'), ('rebound', 'Rebound-Kandidaten'), ('alle', 'Alle')] %}
     <a href="?filter={{ key }}" class="{{ 'aktiv' if filt == key }}">{{ label }} <span class="anz">{{ anzahl[key] }}</span></a>
   {% endfor %}
 </div>
@@ -13,6 +13,8 @@
     {% elif filt == 'stark' %}
       <p><strong>Gerade kein starker Trend</strong> (Score ≥ {{ cfg.schwelle_stark }}). Das ist der Normalfall – der Bot meldet sich, wenn etwas passiert.</p>
       <p><a href="?filter=alle">Alle {{ anzahl.alle }} Aktien ansehen</a></p>
+    {% elif filt == 'rebound' %}
+      <p><strong>Gerade kein starker Einbruch.</strong> Hier erscheinen Aktien, die deutlich unter ihr 5-Tage-Hoch gefallen sind, mit ihrer Rebound-Chance.</p>
     {% else %}
       <p>Keine Aktien in dieser Ansicht.</p>
     {% endif %}
@@ -59,5 +61,7 @@
   Momentum (20), Tagesbewegung (10), Handelsvolumen (15), Ausbruch auf neue Hochs/Tiefs (10), Ordnung der gleitenden
   Durchschnitte (10), ADX-Trendstärke (10), Stärke gegenüber dem Index (10), Nachrichtenlage (10) und Reddit-Aufmerksamkeit (5).
   Ab {{ cfg.schwelle_stark }} Punkten gilt ein Trend als stark{% if cfg.ki_aktiv %} und die KI recherchiert automatisch die Gründe{% endif %}.</p>
+  <p>Die <strong>Rebound-Chance</strong> erscheint nach starken Einbrüchen: Wie oft haben sich Aktien in den letzten 15 Jahren
+  in ähnlichen Situationen innerhalb von 10 Handelstagen um mindestens die Hälfte des Verlusts erholt?</p>
 </details>
 {% endblock %}

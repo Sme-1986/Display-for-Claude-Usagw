@@ -28,6 +28,38 @@
 
 {% if s.details.flags %}<p>{% for f in s.details.flags %}<span class="flag">{{ f }}</span>{% endfor %}</p>{% endif %}
 
+{% set rb = s.details.rebound %}
+{% if rb %}
+<section class="karte rebound">
+  <div class="rb-kopf">
+    <div>
+      <h2>Rebound-Chance ({{ rb.horizont }} Handelstage)</h2>
+      <p class="sym">Wahrscheinlichkeit, dass die Aktie mindestens die Hälfte des Verlusts von {{ rb.verlust|pct }} aufholt, also auf {{ rb.ziel|zahl }} steigt.</p>
+    </div>
+    <div class="rb-zahl {{ 'hoch' if rb.chance > rb.basis + 0.05 else 'tief' if rb.chance < rb.basis - 0.05 else '' }}">{{ (rb.chance * 100)|round|int }} %</div>
+  </div>
+  <div class="rb-skala" aria-hidden="true">
+    <span class="rb-basis" style="left: {{ (rb.basis * 100)|round }}%"></span>
+    <span class="rb-wert" style="left: {{ (rb.chance * 100)|round }}%"></span>
+  </div>
+  <p class="sym">Strich = Durchschnitt aller {{ rb.faelle }} Einbrüche seit {{ rb.seit[:4] }}: {{ (rb.basis * 100)|round|int }} % erholten sich.</p>
+  <div class="spalten schmal">
+    <div>
+      <h3>Spricht dafür</h3>
+      <ul class="faktoren">{% for f in rb.dafuer %}<li class="pos">{{ f.text }}</li>{% else %}<li class="sym">nichts Auffälliges</li>{% endfor %}</ul>
+    </div>
+    <div>
+      <h3>Spricht dagegen</h3>
+      <ul class="faktoren">{% for f in rb.dagegen %}<li class="neg">{{ f.text }}</li>{% else %}<li class="sym">nichts Auffälliges</li>{% endfor %}</ul>
+    </div>
+  </div>
+  {% if not rb.verlaesslich %}
+    <p class="hinweis">Achtung: Im Test mit den letzten Jahren war das Modell kaum besser als der reine Durchschnitt. Zahl nur als grobe Orientierung nehmen. <a href="{{ url_for('status') }}">Details</a></p>
+  {% endif %}
+  <p class="sym">Historische Trefferquote, keine Garantie. Wenn die Ursache ein grundlegendes Problem ist (z. B. gesenkte Prognose), fällt die Erholung oft schwächer aus. Das steht in der KI-Recherche unter „Auslöser“.</p>
+</section>
+{% endif %}
+
 <section class="karte">
   <h2>Kursverlauf (6 Monate)</h2>
   <div class="chart">{{ linie(chart|map(attribute=1)|list, 600, 160) }}</div>

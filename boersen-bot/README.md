@@ -49,6 +49,27 @@ Der Score misst die **Stärke** eines Trends, der Pfeil ▲/▼ zeigt die **Rich
 Zusätzlich gibt es Hinweise wie **„Zahlen in 2 T“**, **„52W-Hoch“**, **„Volumen ×3.4“** oder **„Reddit-Hype“**.
 Auf der Detailseite jeder Aktie steht, wie viele Punkte aus welchem Baustein kommen.
 
+## Rebound-Chance nach Einbrüchen
+
+Fällt eine Aktie stark (mindestens 3,5× ihre normale Tagesschwankung unter das 5-Tage-Hoch),
+zeigt der Bot eine **Rebound-Chance**: Wie oft haben sich Aktien in ähnlichen Situationen
+innerhalb von **10 Handelstagen um mindestens die Hälfte des Verlusts** erholt?
+
+- **Datenbasis:** 15 Jahre Tageskurse aller Watchlist-Aktien, wöchentlich neu ausgewertet.
+- **Modell:** logistische Regression auf 9 Merkmalen, darunter Stärke des Einbruchs, Trend davor,
+  Abstand zur 200-Tage-Linie, RSI, Volumen, Index im selben Zeitraum und firmenspezifischer Anteil.
+- **Ehrlichkeitscheck:** Das Modell wird an den letzten 3 Jahren getestet, die es beim Training nicht
+  gesehen hat. Ist es dort kaum besser als der reine Durchschnitt, steht ein Warnhinweis an der Zahl.
+  Die Testergebnisse stehen unter **Quellen → Rebound-Modell**.
+- Neben der Zahl stehen immer der **Durchschnitt aller Einbrüche** und die wichtigsten Gründe
+  **dafür/dagegen**.
+- Die KI-Recherche ordnet zusätzlich den **Auslöser** ein (Gesamtmarkt, einmalig, grundlegend).
+  Das kann die Statistik nicht wissen, ist aber oft entscheidend.
+
+Einschränkung: Die Watchlist enthält nur heutige Indexmitglieder. Firmen, die nach einem
+Absturz aus dem Index geflogen sind, fehlen in den Daten, dadurch fallen die Quoten etwas zu
+optimistisch aus.
+
 ## Installation auf dem Raspberry Pi
 
 Getestet für Raspberry Pi OS **Bookworm** (Python 3.11+). Ein Pi 3B+ reicht, ein Pi 4/5 ist angenehmer.
@@ -63,7 +84,8 @@ Das Skript installiert alles in einen eigenen Ordner (`venv`), legt `config.toml
 einen Dienst ein, der beim Booten automatisch startet. Am Ende zeigt es die Adresse, z. B.
 `http://192.168.1.50:8080` – im Browser am PC oder Handy öffnen.
 
-Der erste Durchlauf dauert einige Minuten (55 Aktien × mehrere Quellen).
+Der erste Durchlauf dauert einige Minuten (55 Aktien × mehrere Quellen). Danach lädt der Bot
+einmalig 15 Jahre Kurse für das Rebound-Modell. Das dauert noch einmal ein paar Minuten.
 
 ### Einstellungen (`config.toml`)
 
@@ -139,6 +161,7 @@ boersen-bot/
 ├── boersenbot/
 │   ├── quellen.py        alle Datenquellen
 │   ├── scoring.py        Score-Berechnung
+│   ├── rebound.py        Rebound-Chance (Training + Bewertung)
 │   ├── stimmung.py       Stimmung von Schlagzeilen
 │   ├── analyse.py        KI-Recherche (Claude + Websuche)
 │   ├── bot.py            Ablauf, Zeitplan, Meldungen

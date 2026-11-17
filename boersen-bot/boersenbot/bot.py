@@ -6,9 +6,9 @@ import threading
 import time
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
-from datetime import date
+from datetime import date, timedelta
 
-from . import analyse, melden, quellen, scoring
+from . import analyse, melden, quellen, rebound, scoring
 from .config import Config
 from .db import DB
 from .watchlist_default import eintraege
@@ -45,6 +45,11 @@ class Bot:
     def _schleife(self) -> None:
         while True:
             self.lauf()
+            if self._rebound_veraltet():
+                hatte_modell = self.rebound_modell() is not None
+                self.rebound_trainieren()
+                if not hatte_modell and self.rebound_modell():
+                    self.lauf()  # erster Start: Rebound-Chancen gleich anzeigen
             pause = self.cfg.intervall_minuten * 60
             self.status["naechster_lauf"] = time.time() + pause
             self._wecker.wait(pause)
@@ -103,6 +108,7 @@ class Bot:
                 for it in items:
                     zaehler[it["quelle"]] += 1
 
+        modell = self.rebound_modell()
         bewertet = 0
         for i, w in enumerate(watch, 1):
             s = w["symbol"]
@@ -118,7 +124,12 @@ class Bot:
                 social=social.get(s.split(".")[0]) if quellen.ist_us(s) else None,
                 zahlen_termin=termin,
             )
-            db.score_speichern(s, erg.score, erg.richtung, erg.kurs, erg.chg_1d, erg.chg_20d, erg.details())
+            details = erg.details()
+            rb = rebound.bewerte(modell, df, daten.get(w["benchmark"]))
+            if rb:
+                details["rebound"] = rb
+                details["flags"].append(f"Rebound {rb['chance']:.0%}".replace("%", " %"))
+            db.score_speichern(s, erg.score, erg.richtung, erg.kurs, erg.chg_1d, erg.chg_20d, details)
             verlauf = df["Close"].iloc[-130:]
             db.cache_set(f"chart:{s}", [[d.strftime("%Y-%m-%d"), round(float(v), 4)] for d, v in verlauf.items()])
             bewertet += 1
@@ -127,6 +138,36 @@ class Bot:
         db.alte_scores_loeschen()
         self._starke_melden()
         return f"{bewertet}/{len(watch)} Aktien bewertet"
+
+    # ------------------------------------------------------------ Rebound-Modell
+    def rebound_modell(self) -> dict | None:
+        return self.db.cache_get("rebound_modell", 10**10)
+
+    def _rebound_veraltet(self) -> bool:
+        m = self.rebound_modell()
+        return m is None or time.time() - m.get("trainiert", 0) > 7 * 86400
+
+    def rebound_trainieren(self) -> None:
+        """Lädt 15 Jahre Kurse und trainiert das Rebound-Modell neu (ca. wöchentlich)."""
+        if not self._lauf_lock.acquire(blocking=False):
+            return
+        self.status.update(laeuft=True, fortschritt="Rebound-Modell: 15 Jahre Kurse laden …")
+        try:
+            watch = self.db.watchlist()
+            benchmarks = {w["symbol"]: w["benchmark"] for w in watch}
+            start = (date.today() - timedelta(days=365 * rebound.JAHRE)).isoformat()
+            daten = quellen.kurse(sorted(set(benchmarks) | set(benchmarks.values())), start=start)
+            self.status["fortschritt"] = "Rebound-Modell trainieren …"
+            modell = rebound.trainieren(daten, benchmarks)
+            if modell:
+                self.db.cache_set("rebound_modell", modell)
+                log.info("Rebound-Modell: %s Fälle, Güte %s", modell.get("faelle"), modell.get("guete"))
+        except Exception as e:  # noqa: BLE001
+            log.exception("Rebound-Training")
+            self.status["fehler"] = f"Rebound-Training: {e}"
+        finally:
+            self.status.update(laeuft=False, fortschritt="")
+            self._lauf_lock.release()
 
     def _news_sammeln(self, symbol: str, name: str, cik_tabelle: dict) -> list[dict]:
         cfg, db = self.cfg, self.db

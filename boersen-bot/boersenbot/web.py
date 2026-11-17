@@ -82,6 +82,9 @@ def erstelle_app(bot: Bot) -> Flask:
             liste = [s for s in scores if s["richtung"] > 0]
         elif filt == "ab":
             liste = [s for s in scores if s["richtung"] < 0]
+        elif filt == "rebound":
+            liste = sorted((s for s in scores if s["details"].get("rebound")),
+                           key=lambda s: -s["details"]["rebound"]["chance"])
         else:
             filt, liste = "alle", scores
         heute = datetime.now().date().isoformat()
@@ -91,7 +94,8 @@ def erstelle_app(bot: Bot) -> Flask:
             filt=filt,
             anzahl={"alle": len(scores), "stark": len(stark),
                     "auf": sum(s["richtung"] > 0 for s in scores),
-                    "ab": sum(s["richtung"] < 0 for s in scores)},
+                    "ab": sum(s["richtung"] < 0 for s in scores),
+                    "rebound": sum(bool(s["details"].get("rebound")) for s in scores)},
             mit_analyse=db.symbole_mit_analyse(heute),
             charts={s["symbol"]: db.cache_get(f"chart:{s['symbol']}", 10**9) or [] for s in liste},
         )
@@ -141,7 +145,7 @@ def erstelle_app(bot: Bot) -> Flask:
 
     @app.get("/status")
     def status():
-        return render_template("status.html", laeufe=db.letzte_laeufe(15))
+        return render_template("status.html", laeufe=db.letzte_laeufe(15), modell=bot.rebound_modell())
 
     # ------------------------------------------------------------ API (z. B. für ein ESP32-Display)
     @app.get("/api/scores")
@@ -156,6 +160,7 @@ def erstelle_app(bot: Bot) -> Flask:
                 "richtung": s["richtung"], "kurs": s["kurs"],
                 "chg_1d": s["chg_1d"], "chg_20d": s["chg_20d"],
                 "flags": s["details"]["flags"], "ts": s["ts"],
+                "rebound": (s["details"].get("rebound") or {}).get("chance"),
             })
         return jsonify({"schwelle": cfg.schwelle_stark, "aktien": out})
 

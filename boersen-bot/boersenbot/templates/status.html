@@ -42,6 +42,39 @@
 </div>
 
 <section class="karte">
+  <h2>Rebound-Modell</h2>
+  {% if not modell %}
+    <p>Wird nach dem ersten Durchlauf trainiert (lädt 15 Jahre Kurse, dauert auf dem Pi einige Minuten).</p>
+  {% elif not modell.ok %}
+    <p>Zu wenig historische Einbrüche ({{ modell.faelle }}) für ein Modell. Mehr Aktien in die Watchlist aufnehmen.</p>
+  {% else %}
+    {% set g = modell.guete %}
+    <dl class="einst">
+      <dt>Trainiert</dt><dd>{{ modell.trainiert|vor }} (wöchentlich neu)</dd>
+      <dt>Datenbasis</dt><dd>{{ modell.faelle }} Einbrüche bei {{ modell.aktien }} Aktien seit {{ modell.seit[:4] }}</dd>
+      <dt>Einbruch</dt><dd>≥ {{ modell.einstellungen.einbruch_sigma }}× normale Tagesschwankung unter dem 5-Tage-Hoch</dd>
+      <dt>Rebound</dt><dd>≥ {{ (modell.einstellungen.aufholen * 100)|int }} % des Verlusts aufgeholt in {{ modell.einstellungen.horizont }} Handelstagen</dd>
+      <dt>Durchschnitt</dt><dd>{{ (modell.basis * 100)|round|int }} % aller Einbrüche erholten sich</dd>
+    </dl>
+    {% if g %}
+      <h3>Test mit den letzten 3 Jahren ({{ g.test_faelle }} Fälle, beim Training nicht verwendet)</h3>
+      <dl class="einst">
+        <dt>Trennschärfe (AUC)</dt><dd>{{ g.auc|zahl(2) }} <span class="sym">(0,50 = Zufall, ab 0,60 brauchbar)</span></dd>
+        <dt>Besser als Durchschnitt</dt><dd>{{ (g.verbesserung * 100)|zahl(1) }} % geringerer Fehler (Brier-Score)</dd>
+        {% if g.quote_oben is not none %}
+        <dt>Treffer im oberen Drittel</dt><dd>{{ (g.quote_oben * 100)|round|int }} % erholten sich, wenn das Modell eine hohe Chance sah</dd>
+        <dt>Treffer im unteren Drittel</dt><dd>{{ (g.quote_unten * 100)|round|int }} % erholten sich, wenn das Modell eine niedrige Chance sah</dd>
+        {% endif %}
+      </dl>
+      {% if g.verbesserung <= 0.005 or g.auc <= 0.55 %}
+        <p class="hinweis">Das Modell war im Test kaum besser als der Durchschnitt. Die Rebound-Chance wird trotzdem angezeigt, aber mit Warnhinweis.</p>
+      {% endif %}
+    {% endif %}
+    <p class="sym">Hinweis: Die Watchlist enthält nur heutige Indexmitglieder. Firmen, die nach einem Absturz aus dem Index geflogen sind, fehlen, dadurch fallen die Quoten etwas zu optimistisch aus.</p>
+  {% endif %}
+</section>
+
+<section class="karte">
   <h2>Letzte Durchläufe</h2>
   <table class="liste kompakt">
     <thead><tr><th>Start</th><th class="r">Dauer</th><th>Ergebnis</th></tr></thead>

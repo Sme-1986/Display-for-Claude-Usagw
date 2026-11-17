@@ -60,15 +60,18 @@ def ist_us(symbol: str) -> bool:
 
 
 # ---------------------------------------------------------------- Kurse
-def kurse(symbole: list[str], zeitraum: str = "1y") -> dict[str, pd.DataFrame]:
-    """Tageskerzen (OHLCV) für alle Symbole in einem Aufruf."""
+def kurse(symbole: list[str], zeitraum: str = "1y", start: str | None = None) -> dict[str, pd.DataFrame]:
+    """Tageskerzen (OHLCV) für alle Symbole in einem Aufruf.
+
+    zeitraum: z. B. "1y"; alternativ start="2011-01-01" für lange Historie."""
     import yfinance as yf
 
     if not symbole:
         return {}
+    zeit = {"start": start} if start else {"period": zeitraum}
     df = yf.download(
         symbole,
-        period=zeitraum,
+        **zeit,
         interval="1d",
         group_by="ticker",
         auto_adjust=True,
